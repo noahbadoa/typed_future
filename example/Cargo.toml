@@ -1,0 +1,8 @@
+[package]
+name = "example"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async_macro = {path = "../async_macro"}
+pin-project = "1.1.13"
