@@ -190,12 +190,6 @@ pub struct GenericLifeTime {
     pub gt_token: Option<Token![>]>,
 }
 
-impl GenericLifeTime{
-    pub fn empty() -> Self{
-        Self { lt_token: None, params: syn::punctuated::Punctuated::new(), gt_token: None }
-    }
-}
-
 impl TryFrom<syn::Generics> for GenericLifeTime{
     type Error = AsyncFunctionConversionError;
     fn try_from(value: syn::Generics) -> Result<Self, Self::Error> {

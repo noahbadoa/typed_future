@@ -1,6 +1,7 @@
 
 
-#[async_macro::make_answer(size = 44, align = 4)]
+
+#[async_macro::make_answer()]
 pub async fn TestAState(x : core::num::NonZero<u32>) -> u32{
     let x : [u32; 9] = unsafe{core::mem::zeroed()};
 
@@ -9,7 +10,7 @@ pub async fn TestAState(x : core::num::NonZero<u32>) -> u32{
     x[0] + x[5] + x[7]
 }
 
-#[async_macro::make_answer(size = 64, align = 8)]
+#[async_macro::make_answer()]
 async fn test_async_input_function<'a, 'b>(x : &'a mut u32, y : &'b mut u32) -> &'a mut u32{
     *y += *x;
 
@@ -22,7 +23,7 @@ async fn test_async_input_function<'a, 'b>(x : &'a mut u32, y : &'b mut u32) -> 
     x
 }
 
-#[async_macro::make_answer(size = 2, align = 8)]
+#[async_macro::make_answer()]
 pub async fn TestbState(){
     let mut must_drop = Vec::<u32>::new();
     YeildOnceLocal::default().await;

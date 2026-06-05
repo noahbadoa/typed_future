@@ -2,6 +2,7 @@
 use syn::{Token, parse::Parse};
 
 #[derive(Debug)]
+#[allow(unused)]
 enum SupportedLits{
     Int(syn::LitInt),
     Bool(syn::LitBool),
@@ -29,15 +30,15 @@ impl Parse for SupportedLits{
 
 #[derive(Debug)]
 pub struct Input{
-    pub size : usize,
-    pub align : usize,
+    // pub size : usize,
+    // pub align : usize,
     pub send : bool,
     pub sync : bool
 }
 
 impl Default for Input{
     fn default() -> Self {
-        Self { align : 16, size : 0, send : false, sync : false }
+        Self {  send : false, sync : false }
     }
 }
 
@@ -45,24 +46,7 @@ impl Input{
     fn modify(&mut self, name : syn::Ident, value : SupportedLits) -> syn::Result<()>{
         let name = name.to_string();
 
-        match name.as_str() {
-            "size" => {
-                self.size = if let SupportedLits::Int(value) = value{
-                    value.base10_parse::<usize>()?
-                }else{
-                    return Err(syn::Error::new(proc_macro2::Span::call_site(), "Invalid size"));
-
-                };
-            }
-            
-            "align" => {
-                self.align = if let SupportedLits::Int(value) = value{
-                    value.base10_parse::<usize>()?
-                }else{
-                    return Err(syn::Error::new(proc_macro2::Span::call_site(), "Invalid align"));
-                };
-            }
-
+        match name.as_str() {            
             "send" => {
                 self.send = if let SupportedLits::Bool(value) = value{
                     value.value

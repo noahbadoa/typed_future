@@ -10,11 +10,15 @@ pub fn expand(input : &crate::Input, declaration : &crate::ConstSizedFunctionDec
     let inner_ident  = &syn::Ident::new_raw("inner_async_func", proc_macro2::Span::call_site());
     let pollable_ident = &syn::Ident::new_raw("get_poll_fn", proc_macro2::Span::call_site());
 
+
+    let module_name = &syn::Ident::new_raw(format!("{}_towgzhkfrgbocntcoxlq", declaration.function_name).as_str(), proc_macro2::Span::call_site());
+
     let bounds = vaildadtion(input, declaration, inner_ident);
 
-    let declare = declaration_func(input, declaration);
+    let declare = declaration_func(input, declaration, module_name);
     let new = new(declaration, inner_ident);
     let drop = drop(declaration, pollable_ident);
+    let alingment = alignment_module(module_name);
 
     let future = future(declaration, pollable_ident);
     let inner = inner_func(declaration, inner_ident);
@@ -25,6 +29,8 @@ pub fn expand(input : &crate::Input, declaration : &crate::ConstSizedFunctionDec
 
     quote! {
         #declare
+
+        #alingment
 
         impl #generics #name #generics{
             #new

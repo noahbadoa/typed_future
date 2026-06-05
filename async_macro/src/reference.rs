@@ -1,8 +1,12 @@
 /*
 Restriction:
     lifetimes cannot be eluded at all
+    Namespace polution (
+        need structs for defining alignment;
+        can't export those alignment structs in the same crate as regular items because currently proc_macros crates can only export proc_macro items;
+        can't put alignment structs in future impl because no externally visible structs in allowed in impl or struct block
+    )
     Send + Sync cannot be autoderived (compile time checked but not compile time derived)
-    Alingment must be manually specify (compile time checked but not compile time derived)
     No const Generics or Type Generics (Not way to get size Self::SIZE fails to compile)
 */ 
 
@@ -17,7 +21,6 @@ async fn test_async_input_function<'a, 'b>(x : &'a mut u32, y : &'b mut u32) -> 
 
     x
 }
-
 
 
 #[derive(Debug, Default)]
@@ -43,81 +46,92 @@ use core::future::Future;
 use core::task::{Context, Poll};
 use core::cell::UnsafeCell;
 
-#[repr(align(8))]
 pub struct TestAsyncInputFunction<'a, 'b>{
     bytes : [MaybeUninit<u8>; TestAsyncInputFunction::<'static, 'static>::LAYOUT.size()],
 
     not_unpin : PhantomPinned,
     remove_sync_send_by_default : PhantomData::<UnsafeCell::<()>>,
 
+    alignment : TestAsyncInputFunctionAlignment_wskfexuazm::Align<{TestAsyncInputFunction::<'static, 'static>::LAYOUT.align()}>,
+
     _x : PhantomData<&'a u32>,
     _y : PhantomData<&'b u32>,
 }
 
+#[allow(non_snake_case)]
+mod TestAsyncInputFunctionAlignment_wskfexuazm{
+    // https://github.com/jswrenn/elain
+    // can't use crate because proc-macro
+    #[repr(transparent)]
+    pub struct Align<const N: usize>([<Self as AlignedAssociated>::AlignmentStruct; 0]) where Self: AlignedAssociated;
+    pub trait AlignedAssociated{
+        type AlignmentStruct;
+    }
+
+    impl AlignedAssociated for Align<        1> { type AlignmentStruct = Align1;         }
+    impl AlignedAssociated for Align<        2> { type AlignmentStruct = Align2;         }
+    impl AlignedAssociated for Align<        4> { type AlignmentStruct = Align4;         }
+    impl AlignedAssociated for Align<        8> { type AlignmentStruct = Align8;         }
+    impl AlignedAssociated for Align<       16> { type AlignmentStruct = Align16;        }
+    impl AlignedAssociated for Align<       32> { type AlignmentStruct = Align32;        }
+    impl AlignedAssociated for Align<       64> { type AlignmentStruct = Align64;        }
+    impl AlignedAssociated for Align<      128> { type AlignmentStruct = Align128;       }
+    impl AlignedAssociated for Align<      256> { type AlignmentStruct = Align256;       }
+    impl AlignedAssociated for Align<      512> { type AlignmentStruct = Align512;       }
+    impl AlignedAssociated for Align<     1024> { type AlignmentStruct = Align1024;      }
+    impl AlignedAssociated for Align<     2048> { type AlignmentStruct = Align2048;      }
+    impl AlignedAssociated for Align<     4096> { type AlignmentStruct = Align4096;      }
+    impl AlignedAssociated for Align<     8192> { type AlignmentStruct = Align8192;      }
+    impl AlignedAssociated for Align<    16384> { type AlignmentStruct = Align16384;     }
+    impl AlignedAssociated for Align<    32768> { type AlignmentStruct = Align32768;     }
+    impl AlignedAssociated for Align<    65536> { type AlignmentStruct = Align65536;     }
+    impl AlignedAssociated for Align<   131072> { type AlignmentStruct = Align131072;    }
+    impl AlignedAssociated for Align<   262144> { type AlignmentStruct = Align262144;    }
+    impl AlignedAssociated for Align<   524288> { type AlignmentStruct = Align524288;    }
+    impl AlignedAssociated for Align<  1048576> { type AlignmentStruct = Align1048576;   }
+    impl AlignedAssociated for Align<  2097152> { type AlignmentStruct = Align2097152;   }
+    impl AlignedAssociated for Align<  4194304> { type AlignmentStruct = Align4194304;   }
+    impl AlignedAssociated for Align<  8388608> { type AlignmentStruct = Align8388608;   }
+    impl AlignedAssociated for Align< 16777216> { type AlignmentStruct = Align16777216;  }
+    impl AlignedAssociated for Align< 33554432> { type AlignmentStruct = Align33554432;  }
+    impl AlignedAssociated for Align< 67108864> { type AlignmentStruct = Align67108864;  }
+    impl AlignedAssociated for Align<134217728> { type AlignmentStruct = Align134217728; }
+    impl AlignedAssociated for Align<268435456> { type AlignmentStruct = Align268435456; }
+    impl AlignedAssociated for Align<536870912> { type AlignmentStruct = Align536870912; }
+
+    #[repr(align(        1))] pub struct Align1         ;
+    #[repr(align(        2))] pub struct Align2         ;
+    #[repr(align(        4))] pub struct Align4         ;
+    #[repr(align(        8))] pub struct Align8         ;
+    #[repr(align(       16))] pub struct Align16        ;
+    #[repr(align(       32))] pub struct Align32        ;
+    #[repr(align(       64))] pub struct Align64        ;
+    #[repr(align(      128))] pub struct Align128       ;
+    #[repr(align(      256))] pub struct Align256       ;
+    #[repr(align(      512))] pub struct Align512       ;
+    #[repr(align(     1024))] pub struct Align1024      ;
+    #[repr(align(     2048))] pub struct Align2048      ;
+    #[repr(align(     4096))] pub struct Align4096      ;
+    #[repr(align(     8192))] pub struct Align8192      ;
+    #[repr(align(    16384))] pub struct Align16384     ;
+    #[repr(align(    32768))] pub struct Align32768     ;
+    #[repr(align(    65536))] pub struct Align65536     ;
+    #[repr(align(   131072))] pub struct Align131072    ;
+    #[repr(align(   262144))] pub struct Align262144    ;
+    #[repr(align(   524288))] pub struct Align524288    ;
+    #[repr(align(  1048576))] pub struct Align1048576   ;
+    #[repr(align(  2097152))] pub struct Align2097152   ;
+    #[repr(align(  4194304))] pub struct Align4194304   ;
+    #[repr(align(  8388608))] pub struct Align8388608   ;
+    #[repr(align( 16777216))] pub struct Align16777216  ;
+    #[repr(align( 33554432))] pub struct Align33554432  ;
+    #[repr(align( 67108864))] pub struct Align67108864  ;
+    #[repr(align(134217728))] pub struct Align134217728 ;
+    #[repr(align(268435456))] pub struct Align268435456 ;
+    #[repr(align(536870912))] pub struct Align536870912 ;
+}   
+
 impl<'a, 'b> TestAsyncInputFunction<'a, 'b>{
-
-    const _COMPLILER_ERROR : () = const{
-        if Self::LAYOUT.align() != core::alloc::Layout::new::<Self>().align(){
-            pub const NEEDED_SIZE : usize = 100;
-            let mut val = StackStringBuffer::<NEEDED_SIZE>::new();
-            val.insert_back("Future has alignment of ");
-            val.insert_back(StackStringBuffer::<MAX_DECIMAL_WIDTH_U32>::from_u32( Self::LAYOUT.align() as u32).as_str());
-            val.insert_back(" but declared alignment was ");
-            val.insert_back(StackStringBuffer::<MAX_DECIMAL_WIDTH_U32>::from_u32( core::alloc::Layout::new::<Self>().align() as u32).as_str());
-
-            panic!("{}", val.as_str());
-        }
-
-        // not need to check size always equal
-
-        // ignore rest of this block just const string formating stuff
-        pub struct StackStringBuffer<const MAX_SIZE : usize>{
-            pub bytes : [u8; MAX_SIZE],
-            pub length : usize
-        }
-
-        pub const MAX_DECIMAL_WIDTH_U32 : usize = 10;
-        impl<const MAX_SIZE : usize> StackStringBuffer<MAX_SIZE>{
-            pub const fn new() -> Self{
-                Self { bytes: [0; MAX_SIZE], length: 0 }
-            }
-
-            pub const fn as_str<'a>(&'a self) -> &'a str{
-                unsafe{
-                    let slice = core::slice::from_raw_parts(core::ptr::from_ref(&self.bytes).cast::<u8>(), self.length);
-                    match core::str::from_utf8(slice){
-                        Ok(str) => str,
-                        _ => panic!()
-                    }
-                }
-            }
-
-            pub const fn insert_back(&mut self, other : &str){
-                unsafe{
-                    let dst = core::ptr::from_mut(&mut self.bytes).cast::<u8>().add(self.length);
-                    core::ptr::copy_nonoverlapping(other.as_ptr(), dst, other.len());
-                    self.length += other.len();
-                };
-            }
-
-            pub const fn from_u32(val : u32) -> StackStringBuffer::<MAX_SIZE>{
-                let mut bytes : [u8; MAX_SIZE] = [0; MAX_SIZE];
-                let mut val = val;
-                let mut counter = 0;
-
-                while counter < bytes.len() {
-                    bytes[counter] = b'0' + (val % 10) as u8;
-
-                    val /= 10;
-                    counter += 1;
-                    if val == 0 {break;}
-                }
-
-                StackStringBuffer::<MAX_SIZE> { bytes, length: counter }
-            }
-        }
-    };
-
     pub fn new(x : &'a mut u32, y : &'b mut u32) -> Self{
         let bytes = Self::pollable_fn(MaybeUninit::new(x), MaybeUninit::new(y));
 
