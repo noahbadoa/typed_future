@@ -1,6 +1,6 @@
 use quote::{ToTokens, quote};
 use syn::{Token, parse::Parse};
-
+use core::convert::{TryFrom, TryInto};
 
 #[derive(Debug, Clone)]
 pub enum FunctionParamType {
