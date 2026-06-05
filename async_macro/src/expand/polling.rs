@@ -4,10 +4,10 @@ use super::{return_type_to_type, wrap_in_uninit, uninit_async_fucntion};
 
 pub fn inner_func(declare : &ConstSizedFunctionDeclaration, inner_ident : &syn::Ident) -> proc_macro2::TokenStream {
     let return_type = return_type_to_type(declare.return_type.clone());
-    let name = &declare.function_name;
+    let function_name = &declare.function_name;
 
     let mut uninit_args = declare.function_params.clone();
-    let _ = uninit_args.iter_mut().map(|x|{
+    let _ : () = uninit_args.iter_mut().map(|x|{
         x.kind = wrap_in_uninit(&x.kind);
     }).collect::<()>();
 
@@ -25,8 +25,7 @@ pub fn inner_func(declare : &ConstSizedFunctionDeclaration, inner_ident : &syn::
             #declare
 
             unsafe{
-                // doing this so pollable_fn itself can be called with unint values for type punning stuff
-                #name(#(#init_value),*).await
+                #function_name(#(#init_value),*).await
             }
         }
 
@@ -36,7 +35,7 @@ pub fn inner_func(declare : &ConstSizedFunctionDeclaration, inner_ident : &syn::
 pub fn as_pollable(declare : &ConstSizedFunctionDeclaration, pollable_ident : &syn::Ident, inner_ident : &syn::Ident) -> proc_macro2::TokenStream {
     let return_type = return_type_to_type(declare.return_type.clone());
     let generics = &declare.generics;
-    let use_statment = if generics.params.len() == 0{None} else{
+    let use_statment = if generics.params.is_empty() {None} else{
         Some(quote! {use #generics})
     };
 
@@ -57,7 +56,7 @@ pub fn as_pollable(declare : &ConstSizedFunctionDeclaration, pollable_ident : &s
 }
 
 pub fn future(declare : &ConstSizedFunctionDeclaration, pollable_ident : &syn::Ident) -> proc_macro2::TokenStream {
-    let function_name = &declare.function_name;
+    let function_name = &declare.struct_name;
     let generics = &declare.generics;
     let return_type = return_type_to_type(declare.return_type.clone());
 

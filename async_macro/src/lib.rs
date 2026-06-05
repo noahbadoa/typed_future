@@ -3,20 +3,18 @@ mod parsing;
 mod expand;
 use core::convert::TryInto;
 
-#[allow(unused)]
-mod reference;
-
 use crate::input::Input;
 use crate::parsing::{ConstSizedFunctionDeclaration, FunctionDeclaration};
 
-
 #[proc_macro_attribute]
-pub fn make_answer(annotations: proc_macro::TokenStream, annotated_item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn typed_futures(annotations: proc_macro::TokenStream, annotated_item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let parsed = syn::parse::<FunctionDeclaration>(annotated_item).unwrap();
-    let parsed : ConstSizedFunctionDeclaration =  parsed.try_into().unwrap();
+    let mut  parsed : ConstSizedFunctionDeclaration =  parsed.try_into().unwrap();
     let input: Input = syn::parse::<Input>(annotations).unwrap();
+    if let Some(ref name) = input.name{
+        parsed.struct_name = name.clone();
+    }
 
-    // wrapped_writing(&input, &parsed).into()
     expand::expand(&input, &parsed).into()
 }
 
@@ -34,7 +32,7 @@ pub fn example_function() -> (ConstSizedFunctionDeclaration, Input){
     let stream = proc_macro2::TokenStream::from_str(value).unwrap();
     let parsed = syn::parse2::<FunctionDeclaration>(stream).unwrap();
     let parsed : ConstSizedFunctionDeclaration = parsed.try_into().unwrap();
-    let input = Input { send : false, sync : false };
+    let input = Input::default();
 
     (parsed, input)
 }

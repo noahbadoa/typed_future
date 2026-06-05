@@ -7,26 +7,24 @@ use syn::Token;
 use syn::spanned::Spanned;
 
 fn static_layout(declaration : &ConstSizedFunctionDeclaration) -> syn::Expr{
-    let function_name = &declaration.function_name;
+    let struct_name = &declaration.struct_name;
 
-    let static_lifetime_iter = (0..declaration.generics.params.len()).into_iter().map(|_|{
+    let static_lifetime_iter = (0..declaration.generics.params.len()).map(|_|{
         syn::LifetimeParam::new(syn::Lifetime::new("'static", proc_macro2::Span::call_site()))
     });
 
     syn::parse_quote!({
-        #function_name::<#(#static_lifetime_iter),*>::LAYOUT
+        #struct_name::<#(#static_lifetime_iter),*>::LAYOUT
     })
 }
 
 
 pub fn declaration_func(input: &Input, declaration : &ConstSizedFunctionDeclaration, alignment_module : &syn::Ident) -> proc_macro2::TokenStream {
     #[allow(unused)]
-    let ConstSizedFunctionDeclaration { visibilty, is_unsafe, function_name, generics, function_params, return_type, inner } = &declaration;
+    let ConstSizedFunctionDeclaration { visibilty, is_unsafe, function_name, struct_name, generics, function_params, return_type, inner } = &declaration;
     #[allow(unused)]
-    let Input {send, sync } = &input;
+    let Input {name, send, sync } = &input;
 
-    // todo revet later
-    // let sized = input.size;
     let layout = static_layout(declaration);
 
     let lifetime_holder = function_params.iter().map(|x |{
@@ -47,7 +45,7 @@ pub fn declaration_func(input: &Input, declaration : &ConstSizedFunctionDeclarat
     });
 
     let mut out = quote! {
-        #visibilty struct #function_name #generics{
+        #visibilty struct #struct_name #generics{
             bytes : [core::mem::MaybeUninit<u8>; #layout.size()],
 
             not_unpin : core::marker::PhantomPinned,
@@ -60,12 +58,12 @@ pub fn declaration_func(input: &Input, declaration : &ConstSizedFunctionDeclarat
 
     if *send{
         out.extend(quote! {
-            unsafe impl core::marker::Send for #function_name{}
+            unsafe impl core::marker::Send for #struct_name{}
         });
     }
     if *sync{
         out.extend(quote! {
-            unsafe impl core::marker::Sync for #function_name{}
+            unsafe impl core::marker::Sync for #struct_name{}
         });
     }
 
@@ -75,7 +73,7 @@ pub fn declaration_func(input: &Input, declaration : &ConstSizedFunctionDeclarat
 
 pub fn new(declaration : &ConstSizedFunctionDeclaration, inner_ident: &syn::Ident) -> proc_macro2::TokenStream {
     #[allow(unused)]
-    let ConstSizedFunctionDeclaration { visibilty, is_unsafe, function_name, generics, function_params, return_type, inner } = &declaration;
+    let ConstSizedFunctionDeclaration { visibilty, is_unsafe, function_name, struct_name, generics, function_params, return_type, inner } = &declaration;
     
     let uninit_wrapers = function_params.iter().map(|x|{
         let ident = &x.ident;
@@ -93,7 +91,7 @@ pub fn new(declaration : &ConstSizedFunctionDeclaration, inner_ident: &syn::Iden
 
 pub fn drop(declaration : &ConstSizedFunctionDeclaration, pollable_ident: &syn::Ident) -> proc_macro2::TokenStream {
     let lifetimes = &declaration.generics;
-    let name = &declaration.function_name;
+    let name = &declaration.struct_name;
 
     quote! {
         impl #lifetimes Drop for #name #lifetimes{

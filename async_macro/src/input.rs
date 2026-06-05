@@ -6,12 +6,11 @@ use syn::{Token, parse::Parse};
 enum SupportedLits{
     Int(syn::LitInt),
     Bool(syn::LitBool),
+    Ident(syn::Ident),
 }
 
 impl Parse for SupportedLits{
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        // input.parse adanveces the parse stream on error
-
         if input.peek(syn::LitBool){
             if let Ok(x) = input.parse::<syn::LitBool>(){
                 return Ok(Self::Bool(x));
@@ -24,26 +23,20 @@ impl Parse for SupportedLits{
             }
         }
 
-        Err(syn::Error::new(proc_macro2::Span::call_site(), "Unsupported Lit"))
+        let out = input.parse::<syn::Ident>()?;
+        Ok(Self::Ident(out))
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Input{
-    // pub size : usize,
-    // pub align : usize,
     pub send : bool,
-    pub sync : bool
-}
-
-impl Default for Input{
-    fn default() -> Self {
-        Self {  send : false, sync : false }
-    }
+    pub sync : bool,
+    pub name : Option<syn::Ident>
 }
 
 impl Input{
-    fn modify(&mut self, name : syn::Ident, value : SupportedLits) -> syn::Result<()>{
+    fn modify(&mut self, name : &syn::Ident, value : SupportedLits) -> syn::Result<()>{
         let name = name.to_string();
 
         match name.as_str() {            
@@ -63,6 +56,15 @@ impl Input{
                 };
             }
 
+            "name" => {
+                self.name = if let SupportedLits::Ident(value) = value{
+                    Some(value)
+                }else{
+                    return Err(syn::Error::new(proc_macro2::Span::call_site(), "name can't be keyword"));
+                };
+            }
+
+
             _ => {
                 return Err(syn::Error::new(proc_macro2::Span::call_site(), "Unrecognized value"));
             }
@@ -81,7 +83,7 @@ impl Parse for Input{
             input.parse::<Token![=]>()?;
             let value = input.parse::<SupportedLits>()?;
 
-            out.modify(name, value)?;
+            out.modify(&name, value)?;
             if input.is_empty() {break;}
             input.parse::<Token![,]>()?;
         }
@@ -94,7 +96,7 @@ impl Parse for Input{
 fn parsing_test(){
     use core::str::FromStr;
 
-    let function = "size = 24, align = 8, sync = true";
+    let function = "sync = true, name = asdasd";
 
     let stream = proc_macro2::TokenStream::from_str(function).unwrap();
     let _parsed = syn::parse2::<Input>(stream).unwrap();

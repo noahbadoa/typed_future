@@ -126,7 +126,7 @@ impl ToTokens for Abi{
 
 
 
-/// https://doc.rust-lang.org/reference/items/functions.html#grammar-FunctionQualifiers
+// https://doc.rust-lang.org/reference/items/functions.html#grammar-FunctionQualifiers
 #[derive(Debug, Clone)]
 pub struct FunctionDeclaration{
     pub visibilty : syn::Visibility,
@@ -184,13 +184,19 @@ impl Parse for FunctionDeclaration{
 }
 
 #[derive(Debug, Clone)]
-pub struct GenericLifeTime {
-    pub lt_token: Option<Token![<]>,
-    pub params: syn::punctuated::Punctuated<syn::LifetimeParam, Token![,]>,
-    pub gt_token: Option<Token![>]>,
+pub struct ConstrainedGenerics<T> {
+    pub lt_token: Option<syn::token::Lt>,
+    pub params: syn::punctuated::Punctuated<T, syn::token::Comma>,
+    pub gt_token: Option<syn::token::Gt>,
 }
 
-impl TryFrom<syn::Generics> for GenericLifeTime{
+impl From<syn::Generics> for ConstrainedGenerics<syn::GenericParam>{
+    fn from(value: syn::Generics) -> Self {
+        Self { lt_token: value.lt_token, params: value.params, gt_token: value.gt_token }
+    }
+}
+
+impl TryFrom<syn::Generics> for ConstrainedGenerics<syn::LifetimeParam>{
     type Error = AsyncFunctionConversionError;
     fn try_from(value: syn::Generics) -> Result<Self, Self::Error> {
         type CollectType = Result<syn::punctuated::Punctuated<syn::LifetimeParam, Token![,]>, AsyncFunctionConversionError>;
@@ -217,9 +223,9 @@ impl TryFrom<syn::Generics> for GenericLifeTime{
     }
 }
 
-impl ToTokens for GenericLifeTime{
+impl<T : ToTokens> ToTokens for ConstrainedGenerics<T>{
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let GenericLifeTime { lt_token, params, gt_token } = self;
+        let ConstrainedGenerics { lt_token, params, gt_token } = self;
         
         let out = quote! {
             #lt_token #params #gt_token
@@ -229,14 +235,15 @@ impl ToTokens for GenericLifeTime{
     }
 }
 
-
-/// https://doc.rust-lang.org/reference/items/functions.html#grammar-FunctionQualifiers
 #[derive(Debug, Clone)]
 pub struct ConstSizedFunctionDeclaration{
     pub visibilty : syn::Visibility,
     pub is_unsafe : Option<Token![unsafe]>,
+
+    pub struct_name : syn::Ident,
     pub function_name: syn::Ident,
-    pub generics: GenericLifeTime,
+    
+    pub generics: ConstrainedGenerics<syn::GenericParam>,
     pub function_params : syn::punctuated::Punctuated<NonVariadicFunctionParameter, syn::token::Comma>,
     pub return_type: syn::ReturnType,
     pub inner: syn::ExprBlock,
@@ -252,6 +259,12 @@ pub enum AsyncFunctionConversionError{
     NotAsync,
     Const,
     NonRustAbi,
+}
+
+impl From<core::convert::Infallible> for AsyncFunctionConversionError{
+    fn from(_value: core::convert::Infallible) -> Self {
+        unreachable!()
+    }
 }
 
 impl TryFrom<FunctionDeclaration> for ConstSizedFunctionDeclaration{
@@ -274,13 +287,16 @@ impl TryFrom<FunctionDeclaration> for ConstSizedFunctionDeclaration{
                 _ => {return Err(AsyncFunctionConversionError::NonRustAbi);}
             }
         }
+
+        let generics = value.generics.into();
         
         let out = Self { 
             visibilty: value.visibilty,
             is_unsafe: value.is_unsafe, 
-            function_name: value.function_name, 
-            generics: value.generics.try_into()?, 
-            function_params: function_params, 
+            function_name: value.function_name.clone(), 
+            struct_name : value.function_name,
+            generics, 
+            function_params, 
             return_type: value.return_type, 
             inner: value.inner 
         };
@@ -291,7 +307,7 @@ impl TryFrom<FunctionDeclaration> for ConstSizedFunctionDeclaration{
 
 impl ToTokens for ConstSizedFunctionDeclaration{
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let Self { visibilty, is_unsafe, function_name, generics, function_params, return_type, inner } = &self;
+        let Self { visibilty, is_unsafe, function_name, struct_name: _, generics, function_params, return_type, inner } = &self;
 
         let out = quote! {
             #visibilty async #is_unsafe fn #function_name #generics (#function_params) #return_type #inner

@@ -1,6 +1,8 @@
 mod declaration;
 mod bounds_checking;
 mod polling;
+use quote::quote;
+use syn::Token;
 
 pub fn expand(input : &crate::Input, declaration : &crate::ConstSizedFunctionDeclaration) -> proc_macro2::TokenStream{
     use declaration::*;
@@ -24,7 +26,7 @@ pub fn expand(input : &crate::Input, declaration : &crate::ConstSizedFunctionDec
     let inner = inner_func(declaration, inner_ident);
     let outer = as_pollable(declaration, pollable_ident, inner_ident);
 
-    let name = &declaration.function_name;
+    let name = &declaration.struct_name;
     let generics = &declaration.generics;
 
     quote! {
@@ -55,9 +57,6 @@ fn uninit_async_fucntion(declaration : &crate::ConstSizedFunctionDeclaration, in
     syn::parse_quote!({Self::#inner_ident(#(#uninit_wrapped_parameters),*)})
 }
 
-
-use quote::quote;
-use syn::Token;
 pub fn return_type_to_type(kind : syn::ReturnType) -> syn::Type{
     match kind {
         syn::ReturnType::Default => {
@@ -73,7 +72,7 @@ pub fn return_type_to_type(kind : syn::ReturnType) -> syn::Type{
     }
 }
 
-pub fn wrap_in_path(ty: &syn::Type, path : &[&str]) -> syn::Type {
+fn wrap_in_path(ty: &syn::Type, path : &[&str]) -> syn::Type {
     use syn::punctuated::Punctuated;
 
     let final_arg = syn::PathArguments::AngleBracketed(syn::AngleBracketedGenericArguments {
@@ -90,7 +89,7 @@ pub fn wrap_in_path(ty: &syn::Type, path : &[&str]) -> syn::Type {
     let mut segments: Punctuated<syn::PathSegment, Token![::]> = Punctuated::new();
     for (idx, string) in path.iter().enumerate(){
         let arguments = if idx == (path.len() - 1) {final_arg.clone()} else {syn::PathArguments::None};
-        let ident = syn::Ident::new(*string, proc_macro2::Span::call_site());
+        let ident = syn::Ident::new(string, proc_macro2::Span::call_site());
         let segment = syn::PathSegment {ident, arguments};
         segments.push(segment);
     }
