@@ -1,5 +1,7 @@
+
+
 #[async_macro::make_answer(size = 44, align = 4)]
-pub async fn TestAState(_x : core::num::NonZero<u32>) -> u32{
+pub async fn TestAState(x : core::num::NonZero<u32>) -> u32{
     let x : [u32; 9] = unsafe{core::mem::zeroed()};
 
     YeildOnceLocal::default().await;
@@ -7,8 +9,22 @@ pub async fn TestAState(_x : core::num::NonZero<u32>) -> u32{
     x[0] + x[5] + x[7]
 }
 
-#[async_macro::make_answer(size = 2, align = 1)]
+#[async_macro::make_answer(size = 64, align = 8)]
+async fn test_async_input_function<'a, 'b>(x : &'a mut u32, y : &'b mut u32) -> &'a mut u32{
+    *y += *x;
+
+    let ptr = core::ptr::null::<u8>();
+
+    YeildOnceLocal::default().await;
+
+    let y = core::ptr::null::<u8>() == ptr;
+
+    x
+}
+
+#[async_macro::make_answer(size = 2, align = 8)]
 pub async fn TestbState(){
+    let mut must_drop = Vec::<u32>::new();
     YeildOnceLocal::default().await;
 }
 
@@ -86,23 +102,4 @@ pub struct AlignType;
 async fn test_func<'b, 'c>(_x : &'b u32, _y : &'c u32) -> &'c u32{
     YeildOnceLocal::default().await;
     &0
-}
-
-const fn get_layout_of_async_fn() -> core::alloc::Layout{
-    const fn decay_return_type<'a, 'b, Output, FutureType : Future<Output = Output>, FutureConstructor>(_ptr : core::mem::ManuallyDrop<FutureConstructor>) -> *mut FutureType where FutureConstructor : Fn(&'a u32, &'b u32) -> FutureType{
-        core::ptr::null_mut()
-    }
-    
-    
-    let y = test_func;
-    let null_ptr = decay_return_type::<&u32, _, _>(core::mem::ManuallyDrop::new(y));
-    let ptr = unsafe{&*null_ptr};
-    core::alloc::Layout::for_value(ptr)
-}
-
-const X : core::alloc::Layout = get_layout_of_async_fn();
-
-pub struct Testing{
-    pub value : [u8; X.size()],
-    pub marker : [AlignType; 0],
 }
