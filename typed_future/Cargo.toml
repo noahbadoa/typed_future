@@ -1,0 +1,15 @@
+[package]
+name = "typed_future"
+version = "0.1.0"
+edition = "2018"
+rust-version = "1.31"
+license = "Unlicense"
+description = "Deanonymize Async functions"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = {version = "1.*"}
+syn = {version = "2.*", features = ["full", "extra-traits"]}
+proc-macro2 = {version = "1.*"}
