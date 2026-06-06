@@ -6,4 +6,4 @@ license = "Unlicense"
 
 [dependencies]
 typed_future = {path = "../typed_future"}
-pin-project = {version = "1.*"}
+pin-project = {version = "^1"}
