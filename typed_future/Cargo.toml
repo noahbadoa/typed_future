@@ -1,10 +1,12 @@
 [package]
 name = "typed_future"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2018"
 rust-version = "1.31"
 license = "Unlicense"
-description = "Deanonymize Async functions"
+description = "Deanonymize async functions"
+keywords = ["async", "macro"]
+repository = "https://github.com/noahbadoa/typed_future.git"
 
 [lib]
 proc-macro = true
